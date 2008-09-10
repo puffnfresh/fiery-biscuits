@@ -6,7 +6,7 @@ from pyglet.window import key
 
 INPUT_INDICATOR = ">>> "
 
-class Console():
+class Console(object):
     def __init__(self, window, globals):
         self.active = False
         self.globals = globals

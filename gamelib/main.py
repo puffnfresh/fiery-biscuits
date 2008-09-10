@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import sys
 import os
 
@@ -8,11 +7,11 @@ current_dir = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(os.path.join(current_dir, '..', 'lib'))
 
 import data
-import math
 import pyglet
 import ode
 
 from console import Console
+from physics import PhysicsBox, PhysicsCylinder
 
 # Gameplay constants
 DISPLAY_FPS = True
@@ -34,49 +33,25 @@ world.setGravity((0, GRAVITY, 0))
 space = ode.Space()
 contactgroup = ode.JointGroup()
 
-roof = ode.GeomPlane(space, (0, -1, 0), -window.height)
+# Background sprite
+background_image = pyglet.image.load(data.filepath('background.png'))
+background = pyglet.sprite.Sprite(background_image)
+
+# Physics limits
+roof = ode.GeomPlane(space, (0, -1, 0), -background.height)
 floor = ode.GeomPlane(space, (0, 1, 0), 0)
 wall_left = ode.GeomPlane(space, (1, 0, 0), 0)
-wall_right = ode.GeomPlane(space, (-1, 0, 0), -window.width)
+wall_right = ode.GeomPlane(space, (-1, 0, 0), -background.width)
 
 # Player
-class Player():
+class Player(PhysicsCylinder):
     def __init__(self):
+        super(Player, self).__init__(world, space, batch, 'yarn.png')
         self.speed_dt = 0
-
-        self.image = pyglet.image.load(data.filepath('yarn.png'))
-        self.image.anchor_x = self.image.width / 2
-        self.image.anchor_y = self.image.height / 2
-
-        self.sprite = pyglet.sprite.Sprite(self.image, batch=batch)
-
-        self.body = ode.Body(world)
+        
         self.body.setPosition((200, 300, 0))
         self.body.setAngularVel((0, 0, 10))
         self.body.setLinearVel((500, 0, 0))
-
-        self.mass = ode.Mass()
-        self.mass.setCylinder(1, 3, self.image.width / 2, 1)
-        self.body.setMass(self.mass)
-
-        self.geom = ode.GeomCylinder(space, self.image.width / 2)
-        self.geom.setBody(self.body)
-
-        self.joint2d = ode.Plane2DJoint(world)
-        self.joint2d.attach(self.body, ode.environment)
-
-        self.update()
-
-    def update(self):
-        self.sprite.x, self.sprite.y = self.body.getPosition()[0:2]
-
-        quaternion = list(self.body.getQuaternion())
-        quaternion[1] = quaternion[2] = 0
-        self.body.setQuaternion(quaternion)
-
-        matrix = self.body.getRotation()
-        rotation = math.atan2(matrix[4], matrix[3]) * 180/math.pi - 90
-        self.sprite.rotation = rotation
 
     def move_left(self, dt):
         self.update_speed(dt, 'left')
@@ -105,20 +80,6 @@ def near_callback(args, geom1, geom2):
         contact.setBounce(1)
         joint = ode.ContactJoint(world, contactgroup, contact)
         joint.attach(geom1.getBody(), geom2.getBody())
-
-physics_dt = 0.0
-def update(dt):
-    global physics_dt
-
-    player.update()
-
-    physics_dt += dt
-    while physics_dt > PHYSICS_STEP:
-        space.collide(None, near_callback)
-        world.step(PHYSICS_STEP)
-        contactgroup.empty()
-
-        physics_dt -= PHYSICS_STEP
 
 # Input
 @window.event
@@ -156,6 +117,58 @@ def on_key_release(symbol, modifers):
     elif symbol == key.RIGHT:
         pyglet.clock.unschedule(player.move_right)
 
+# Test sprite
+puffnfresh_image = pyglet.image.load(data.filepath("puffnfresh_pixel.gif"))
+puffnfresh = pyglet.sprite.Sprite(puffnfresh_image, batch=batch)
+puffnfresh_position = (600, 200)
+#puffnfresh_geom = ode.GeomBox(space, (puffnfresh_image.width, puffnfresh_image.height, 1.0))
+#puffnfresh_geom.setPosition((puffnfresh_position[0] + puffnfresh_image.width / 2, puffnfresh_position[1] + puffnfresh_image.height / 2, 0))
+
+penguin = PhysicsBox(world, space, batch, 'linux_penguin.gif')
+penguin.getBody().setPosition((100, 100, 0))
+
+# Main
+def get_window_position(position, offset):
+    return position[0] + offset[0], position[1] + offset[1]
+
+physics_dt = 0.0
+def update(dt):
+    player.update()
+    penguin.update()
+ 
+    # Position everything but try to keep player in the middle of the screen
+    player_pos = player.body.getPosition()[0:2]
+    player_offset = (window.width / 2 - player_pos[0], window.height / 2 - player_pos[1])
+    window_offset = [0, 0]
+    if player_offset[0] > 0:
+        window_offset[0] = player_offset[0]
+    elif player_offset[0] < -(background_image.width - window.width):
+        window_offset[0] = background_image.width - window.width + player_offset[0]
+
+    if player_offset[1] > 0:
+        window_offset[1] = player_offset[1]
+    elif player_offset[1] < -(background_image.height - window.height):
+        window_offset[1] = background_image.height - window.height + player_offset[1]
+
+    object_offset = (player_offset[0] - window_offset[0], player_offset[1] - window_offset[1])
+
+    player.sprite.x, player.sprite.y = window.width / 2 - window_offset[0], window.height / 2 - window_offset[1]
+    background.position = object_offset
+    puffnfresh.position = get_window_position(puffnfresh_position, object_offset)
+
+    penguin.getSprite().position = get_window_position(penguin.getBody().getPosition(), object_offset)
+
+    # Physics
+    global physics_dt
+
+    physics_dt += dt
+    while physics_dt > PHYSICS_STEP:
+        space.collide(None, near_callback)
+        world.step(PHYSICS_STEP)
+        contactgroup.empty()
+
+        physics_dt -= PHYSICS_STEP
+
 # Graphics
 if DISPLAY_FPS:
     fps_display = pyglet.clock.ClockDisplay()
@@ -163,6 +176,7 @@ if DISPLAY_FPS:
 @window.event
 def on_draw():
     window.clear()
+    background.draw()
     batch.draw()
 
     if console.is_active():
