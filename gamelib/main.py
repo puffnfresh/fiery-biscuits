@@ -1,11 +1,4 @@
 #!/usr/bin/env python
-import sys
-import os
-
-# Make sure we can include the extra modules
-current_dir = os.path.abspath(os.path.dirname(__file__))
-sys.path.append(os.path.join(current_dir, '..', 'lib'))
-
 import data
 import pyglet
 import ode
