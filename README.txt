@@ -1,4 +1,4 @@
-Fiery Biscuit Game
+Twinerama
 ===============
 
 Entry in PyWeek #7  <http://www.pyweek.org/7/>
@@ -28,13 +28,14 @@ Othewise open a terminal / console and "cd" to the game directory and run:
 
 HOW TO PLAY THE GAME:
 
-Move the cursor around the screen with the mouse.
+You have 25 seconds to get the ball of twine to the end of the level. This gets
+tricky because the ball of twine is quite bouncy.
 
-Press the left mouse button to fire the ducks.
+You must roll to the end using the left and right arrow keys on the keyboard.
+You can press F5 to take a screenshot and '~' to bring down a console.
 
 
 
 LICENSE:
 
-This game skellington is placed in the Public Domain.
-
+Both Twinerama's code and artwork are licensed under the GPL.
