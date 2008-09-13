@@ -31,6 +31,7 @@ def mimeEncode(data, sep_boundary=sep_boundary, end_boundary=end_boundary):
             else:
                 ret.write('\nContent-Disposition: form-data; name="%s"'%key)
                 ret.write("\n\n")
+                value = str(value)
             ret.write(str(value))
             if value and value[-1] == '\r':
                 ret.write('\n')  # write an extra newline

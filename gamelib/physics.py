@@ -3,7 +3,7 @@ import ode
 import pyglet
 import data
 
-DEFAULT_DENSITY = 1.0
+DEFAULT_DENSITY = 0.0001
 
 class StaticObject(object):
     def __init__(self, space, filename, batch=None):
